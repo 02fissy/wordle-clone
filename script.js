@@ -1,5 +1,6 @@
 import { WORDS } from "./words.js";
 
+const WORD_KEY = "wordle_word";
 const STORAGE_KEY = 'recent_guesses';
 const STATS_KEY = 'wordle_stats';
 const NUMBER_OF_GUESSES = 6;
@@ -7,7 +8,14 @@ const NUMBER_OF_GUESSES = 6;
 let guessesRemaining = NUMBER_OF_GUESSES;
 let currentGuess = [];
 let nextLetter = 0;
-let rightGuessString = WORDS[Math.floor(Math.random() * WORDS.length)];
+
+let rightGuessString = localStorage.getItem(WORD_KEY);
+
+if (!rightGuessString) {
+    rightGuessString = WORDS[Math.floor(Math.random() * WORDS.length)];
+    localStorage.setItem(WORD_KEY, rightGuessString);
+}
+
 
 let stats = JSON.parse(localStorage.getItem(STATS_KEY)) || {
     currentStreak: 0,
@@ -95,7 +103,14 @@ function saveGuesses(guess, colors) {
 
 function initBoard() {
     let board = document.getElementById("game-board");
+
+    board.innerHTML = "";
     let savedGuesses = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+
+
+     guessesRemaining = NUMBER_OF_GUESSES;
+    currentGuess = [];
+    nextLetter = 0;
     renderStats();
 
     for (let i = 0; i < NUMBER_OF_GUESSES; i++) {
@@ -202,13 +217,14 @@ function checkGuess() {
 
     if (guessString === rightGuessString) {
         toastr.success("You guessed right! Game over!");
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(WORD_KEY);
         updateStats(true);
         guessesRemaining = 0;
-        localStorage.removeItem(STORAGE_KEY);
 
         setTimeout(() => {
-            location.reload();
-        }, 1500);
+        resetGame();
+        }, 1600);
 
         return;
     } else {
@@ -217,15 +233,16 @@ function checkGuess() {
         nextLetter = 0;
 
         if (guessesRemaining === 0) {
+             localStorage.removeItem(STORAGE_KEY);
+             localStorage.removeItem(WORD_KEY);
             updateStats(false);
             toastr.error("You've run out of guesses! Game over!");
             toastr.info(`The right word was: "${rightGuessString}"`);
 
-            localStorage.removeItem(STORAGE_KEY);
-
             setTimeout(() => {
-                location.reload();
-            }, 2000);
+             resetGame();
+            }, 2200);
+
         }
     }
 }
@@ -279,5 +296,35 @@ document.getElementById("keyboard-cont").addEventListener("click", (e) => {
     if (key === "Del") key = "Backspace";
     document.dispatchEvent(new KeyboardEvent("keyup", { key: key }));
 });
+
+function resetGame() {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(WORD_KEY);
+
+    guessesRemaining = NUMBER_OF_GUESSES;
+    currentGuess = [];
+    nextLetter = 0;
+   
+    rightGuessString = WORDS[Math.floor(Math.random() * WORDS.length)];
+    localStorage.setItem(WORD_KEY, rightGuessString);
+    console.log("New word:", rightGuessString);
+
+    const board = document.getElementById("game-board");
+    board.innerHTML = "";
+
+    const keys = document.getElementsByClassName("keyboard-button");
+    for (let key of keys) {
+        key.style.backgroundColor = "";
+    }
+
+    const hardModeCheckbox = document.getElementById("hard-mode-toggle");
+    if (hardModeCheckbox) {
+        hardModeCheckbox.disabled = false;
+        hardModeCheckbox.checked = false;
+    }
+
+    initBoard();
+}
+
 
 initBoard();
